@@ -6,35 +6,48 @@
 
 import csv
 import sys
+from decimal import Decimal
 
 
 def load_sales(path):
     rows = []
-    f = open(path)
-    reader = csv.DictReader(f)
-    for row in reader:
-        rows.append(
-            {
-                "date": row["date"],
-                "item": row["item"],
-                "quantity": int(row["quantity"]),
-                "unit_price": float(row["unit_price"]),
-            }
-        )
+    with open(path, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append(
+                {
+                    "date": row["date"],
+                    "item": row["item"],
+                    "quantity": int(row["quantity"]),
+                    "unit_price": Decimal(row["unit_price"]),
+                }
+            )
     return rows
 
 
 def apply_discount(amount, discount_percent):
-    return amount * (1 - discount_percent / 100)
+    discount = Decimal(str(discount_percent))
+    if not discount.is_finite() or discount < 0 or discount > 100:
+        raise ValueError("割引率は0〜100の範囲で指定してください")
+    return amount * (1 - discount / 100)
 
 
 def summarize(rows, discount_percent=0):
-    total = 0.0
+    if not rows:
+        zero = Decimal("0")
+        return {
+            "count": 0,
+            "total": zero,
+            "average": zero,
+            "tax": zero,
+            "grand_total": zero,
+        }
+    total = Decimal("0")
     for row in rows:
         total += row["quantity"] * row["unit_price"]
     total = apply_discount(total, discount_percent)
     average = total / len(rows)
-    tax = total * 0.1
+    tax = total * Decimal("0.1")
     return {
         "count": len(rows),
         "total": total,
